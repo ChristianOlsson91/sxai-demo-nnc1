@@ -99,7 +99,7 @@ body {
 .play-strip {
   max-width: 760px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 2rem;
+  padding: 1rem 1rem 1rem;
 }
 .play-copy h1 {
   margin: 0 0 0.35rem;
@@ -120,8 +120,8 @@ body {
 }
 #game-root {
   width: 100%;
-  height: min(78dvh, 680px);
-  min-height: 460px;
+  height: min(calc(100dvh - 210px), 680px);
+  min-height: 420px;
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid var(--line);

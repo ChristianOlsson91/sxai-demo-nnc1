@@ -1,5 +1,6 @@
 /**
- * Cloud Crew v2 — SpaceXAI demo mini-game (fan demo, local only)
+ * Cloud Crew v3 — SpaceXAI demo mini-game (fan demo, local only)
+ * v3: a ~3 s intro on the first Play (Elon image, camera zooms into his phone).
  * You're Elon Musk with a phone full of company problems. Raise the phone,
  * pick the fix, hit Send. Reach 1000 points to unlock Mars.
  *
@@ -32,6 +33,24 @@
   var NEXT_BAD_MS = 750;      // ... after a wrong send
   var LAUNCH_MS = 2800;       // rocket flight to Mars
   var BEZEL_HIDDEN = 16;      // px of phone bottom hidden below the edge
+  var INTRO_HOLD = 1000;      // intro: Elon on screen before the zoom (ms)
+  var INTRO_ZOOM = 1400;      // ... camera zoom into his phone
+  var INTRO_FADE = 380;       // ... crossfade into the real phone
+  var INTRO_SKIP_FADE = 200;  // ... crossfade when skipped
+  var INTRO_RM_HOLD = 900;    // reduced motion: hold, then just fade
+  var INTRO_PHONE = { x: 0.4694, y: 0.3236, w: 0.069, h: 0.037 }; // phone in the image (fractions)
+  var INTRO_MAX_UPSCALE = 6;   // cap the zoom at this many screen px per source px
+  var INTRO_SRC_W = 784;
+
+  // Intro image path, relative to this script (works at /cloud-crew/ in the shell and standalone).
+  var INTRO_IMG = (function () {
+    var rel = 'assets/elon-intro.webp';
+    try {
+      var cs = typeof document !== 'undefined' && document.currentScript;
+      if (cs && cs.src) return new URL(rel, cs.src).href;
+    } catch (_) {}
+    return rel;
+  })();
 
   // ---- Content (fan tone; made-up problems, not real company facts) -------
   // Each problem: [problem, correct fix, wrong 1, wrong 2]
@@ -225,6 +244,15 @@
       '<p class="cloud-crew__sub" data-cc-sub></p>' +
       '<p class="cloud-crew__scoreline" data-cc-final></p>' +
       '<button type="button" class="cloud-crew__btn" data-cc-play>Play</button>' +
+      '</div>' +
+      '<div class="cloud-crew__intro" data-cc-intro hidden>' +
+      '<div class="cloud-crew__intro-stars" aria-hidden="true"></div>' +
+      '<div class="cloud-crew__intro-stage" data-cc-introstage>' +
+      '<img class="cloud-crew__intro-img" data-cc-introimg alt="" aria-hidden="true" draggable="false" decoding="async">' +
+      '</div>' +
+      '<div class="cloud-crew__intro-pill cloud-crew__intro-ai">AI-generated image</div>' +
+      '<div class="cloud-crew__intro-pill cloud-crew__intro-skip"><span class="cloud-crew__touch-only">Tap to skip</span>' +
+      '<span class="cloud-crew__mouse-only">Click or press Esc to skip</span></div>' +
       '</div>';
 
     function q(sel) { return rootEl.querySelector(sel); }
@@ -254,6 +282,9 @@
     var subEl = q('[data-cc-sub]');
     var finalEl = q('[data-cc-final]');
     var playBtn = q('[data-cc-play]');
+    var introEl = q('[data-cc-intro]');
+    var introStage = q('[data-cc-introstage]');
+    var introImg = q('[data-cc-introimg]');
 
     var bots = BOTS.map(function (def, idx) {
       var el = rootEl.querySelector('[data-cc-bot="' + idx + '"]');
@@ -273,7 +304,7 @@
     });
 
     // ---- State ------------------------------------------------------------
-    var state = 'ready'; // ready | playing | launch | won | over
+    var state = 'ready'; // ready | intro | playing | launch | won | over
     var score = 0;
     var rain = 0;
     var elapsed = 0;     // ms of play
@@ -293,6 +324,9 @@
     var timers = [];
     var anims = [];
     var ro = null;
+    var introSeen = false; // the intro plays on the first Play only
+    var introAnim = null;
+    var introReady = false; // image loaded; if it fails or isn't in yet, Play skips the intro
 
     function later(fn, ms) {
       var id = setTimeout(function () {
@@ -825,8 +859,9 @@
       raf = requestAnimationFrame(loop);
     }
 
-    function startGame() {
+    function startGame(fromIntro) {
       if (destroyed) return;
+      if (fromIntro !== true) hideIntro();
       clearTimers();
       clearFx();
       score = 0;
@@ -847,11 +882,125 @@
       arriveIn = ARRIVE_FIRST[0];
       arriveQueue = [ARRIVE_FIRST[1] - ARRIVE_FIRST[0]];
       setRaised(false);
+      if (fromIntro === true) {
+        // The intro zoomed into Elon's phone: pick up with it raised and the first problem open.
+        phone.classList.add('is-dragging'); // no slide transition
+        setRaised(true);
+        void phone.offsetWidth;
+        phone.classList.remove('is-dragging');
+        addNote();
+        arriveIn = ARRIVE_FIRST[1] - ARRIVE_FIRST[0];
+        arriveQueue = [];
+      }
       updateHud();
       overlay.hidden = true;
       rootEl.classList.add('is-playing');
       lastTs = 0;
       if (!raf) raf = requestAnimationFrame(loop);
+    }
+
+    // ---- Intro (first Play only) --------------------------------------------
+    function reducedMotion() {
+      return !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    function play() {
+      if (destroyed) return;
+      if (state === 'intro') { endIntro(false); return; }
+      if (introSeen || !introReady) { introSeen = true; startGame(); return; }
+      startIntro();
+    }
+
+    function startIntro() {
+      introSeen = true;
+      clearTimers();
+      clearFx();
+      state = 'intro'; // the loop ignores this state: no timers, drain or notifications
+      inbox = [];
+      openNote = null;
+      locked = false;
+      launch = null;
+      drag = null;
+      launchEl.hidden = true;
+      rootEl.classList.remove('is-launching');
+      phone.classList.remove('is-away', 'is-dragging');
+      resetBots();
+      setRaised(false);
+      overlay.hidden = true;
+      if (introAnim) { introAnim.cancel(); introAnim = null; }
+      introStage.style.transform = '';
+      introEl.style.pointerEvents = '';
+      introEl.style.transitionDuration = '';
+      introEl.classList.remove('is-out');
+      introEl.hidden = false;
+      rootEl.classList.add('is-intro');
+      later(zoomIntro, reducedMotion() ? INTRO_RM_HOLD : INTRO_HOLD);
+    }
+
+    // Camera move: map the SVG phone onto where the real raised phone sits.
+    function zoomIntro() {
+      if (state !== 'intro') return;
+      if (reducedMotion() || !introStage.animate) { endIntro(false); return; }
+      var root = rootEl.getBoundingClientRect();
+      var ir = introImg.getBoundingClientRect();
+      var dr = device.getBoundingClientRect();
+      var lift = phone.classList.contains('is-lowered') ? travel : 0;
+      var P = { x: ir.left - root.left + ir.width * INTRO_PHONE.x, y: ir.top - root.top + ir.height * INTRO_PHONE.y };
+      var T = { x: dr.left - root.left + dr.width / 2, y: dr.top - root.top - lift + dr.height / 2 };
+      var pw = ir.width * INTRO_PHONE.w;
+      var ph = ir.height * INTRO_PHONE.h;
+      var s = Math.sqrt((dr.width * dr.height) / Math.max(1, pw * ph));
+      s = Math.max(1, Math.min(s, INTRO_MAX_UPSCALE * INTRO_SRC_W / Math.max(1, ir.width)));
+      function frame(u, sc, deg) {
+        // keep P on the straight line to T: translate = M - sc * R(deg) * P
+        var mx = P.x + (T.x - P.x) * u;
+        var my = P.y + (T.y - P.y) * u;
+        var r = deg * Math.PI / 180;
+        var rx = P.x * Math.cos(r) - P.y * Math.sin(r);
+        var ry = P.x * Math.sin(r) + P.y * Math.cos(r);
+        return { transform: 'translate(' + (mx - sc * rx).toFixed(1) + 'px,' + (my - sc * ry).toFixed(1) + 'px) scale(' +
+          sc.toFixed(3) + ') rotate(' + deg + 'deg)' };
+      }
+      introAnim = introStage.animate([
+        frame(0, 1, 0),
+        frame(0.35, 1 + (s - 1) * 0.2, -3),
+        frame(1, s, 0)
+      ], { duration: INTRO_ZOOM, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' });
+      introAnim.onfinish = function () {
+        if (!destroyed && state === 'intro') endIntro(false);
+      };
+    }
+
+    function endIntro(skipped, byPointer) {
+      if (state !== 'intro') return;
+      if (introAnim) introAnim.pause(); // freeze the camera where it is
+      startGame(true);
+      var fade = skipped ? INTRO_SKIP_FADE : INTRO_FADE;
+      // a skip tap keeps blocking until the fade ends, so it can't land on the phone
+      introEl.style.pointerEvents = byPointer ? 'auto' : 'none';
+      introEl.style.transitionDuration = fade + 'ms';
+      void introEl.offsetWidth;
+      introEl.classList.add('is-out');
+      later(hideIntro, fade + 40);
+    }
+
+    function hideIntro() {
+      if (introAnim) { introAnim.cancel(); introAnim = null; }
+      introEl.hidden = true;
+      introEl.classList.remove('is-out');
+      introEl.style.pointerEvents = '';
+      introEl.style.transitionDuration = '';
+      introStage.style.transform = '';
+      rootEl.classList.remove('is-intro');
+    }
+
+    function onIntroLoad() { introReady = true; }
+    function onIntroError() { introReady = false; introSeen = true; } // no image: no intro
+
+    function onIntroDown(e) {
+      if (state !== 'intro') return;
+      e.preventDefault();
+      endIntro(true, true);
     }
 
     function gameOver() {
@@ -877,6 +1026,13 @@
         !rootEl.contains(t) && /^(A|BUTTON)$/.test(t.tagName);
       if (outsideControl) return;
       var code = e.code;
+      if (state === 'intro') {
+        if (code === 'Space' || code === 'Enter' || code === 'NumpadEnter' || code === 'Escape') {
+          e.preventDefault();
+          if (!e.repeat) endIntro(true);
+        }
+        return;
+      }
       if (state === 'playing') {
         if (code === 'Space' || code === 'KeyP') {
           e.preventDefault();
@@ -900,7 +1056,7 @@
         if (state === 'launch') { e.preventDefault(); return; }
         if (overlay.hidden || e.target === playBtn) return; // the focused button clicks itself
         e.preventDefault();
-        startGame();
+        play();
       }
     }
 
@@ -982,7 +1138,7 @@
 
     function onPlayClick(e) {
       e.stopPropagation();
-      startGame();
+      play();
     }
 
     phone.addEventListener('pointerdown', onPhoneDown);
@@ -991,6 +1147,10 @@
     phone.addEventListener('pointercancel', onPhoneUp);
     phone.addEventListener('click', onScreenClick);
     playBtn.addEventListener('click', onPlayClick);
+    introEl.addEventListener('pointerdown', onIntroDown);
+    introImg.addEventListener('load', onIntroLoad);
+    introImg.addEventListener('error', onIntroError);
+    introImg.src = INTRO_IMG; // preload on init (the intro element stays hidden until Play)
     window.addEventListener('keydown', onKey);
     window.addEventListener('resize', layout);
     if (typeof ResizeObserver !== 'undefined') {
@@ -1006,13 +1166,17 @@
     raf = requestAnimationFrame(loop);
 
     return {
-      start: startGame,
+      start: play,
       destroy: function () {
         destroyed = true;
         if (raf) cancelAnimationFrame(raf);
         raf = 0;
         clearTimers();
         clearFx();
+        if (introAnim) { introAnim.cancel(); introAnim = null; }
+        introEl.removeEventListener('pointerdown', onIntroDown);
+        introImg.removeEventListener('load', onIntroLoad);
+        introImg.removeEventListener('error', onIntroError);
         phone.removeEventListener('pointerdown', onPhoneDown);
         phone.removeEventListener('pointermove', onPhoneMove);
         phone.removeEventListener('pointerup', onPhoneUp);
@@ -1023,7 +1187,7 @@
         window.removeEventListener('resize', layout);
         if (ro) ro.disconnect();
         rootEl.innerHTML = '';
-        rootEl.classList.remove('cloud-crew', 'is-narrow', 'is-roomy', 'is-compact', 'is-playing', 'is-launching');
+        rootEl.classList.remove('cloud-crew', 'is-narrow', 'is-roomy', 'is-compact', 'is-playing', 'is-launching', 'is-intro');
         rootEl.style.removeProperty('--cc-cloud-w');
         rootEl.style.removeProperty('--cc-travel');
         rootEl.style.removeProperty('--cc-progress');
