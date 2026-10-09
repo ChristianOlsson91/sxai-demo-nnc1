@@ -1,0 +1,8 @@
+{
+  "bots": [
+    { "id": "pilot", "name": "Pilot", "blurb": "Flight ops companion" },
+    { "id": "forge", "name": "Forge", "blurb": "Build & ship helper" },
+    { "id": "beacon", "name": "Beacon", "blurb": "Alerts & status" },
+    { "id": "scout", "name": "Scout", "blurb": "Research runner" }
+  ]
+}

@@ -1,0 +1,950 @@
+/* Cloud Crew v2 — SpaceXAI demo mini-game. Everything scoped under .cloud-crew */
+.cloud-crew {
+  --cc-bg: #050814;
+  --cc-cyan: #00e5ff;
+  --cc-cyan-dim: rgba(0, 229, 255, 0.35);
+  --cc-white: #e8f4ff;
+  --cc-muted: rgba(232, 244, 255, 0.6);
+  --cc-green: #3dffa0;
+  --cc-red: #ff4d6a;
+  --cc-amber: #ffc94d;
+  --cc-mars: #ff6a3d;
+  --cc-cloud-w: 110px;
+  --cc-travel: 300px;
+  --cc-progress: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  box-sizing: border-box;
+  background: radial-gradient(ellipse at 50% 15%, #0d1a3a 0%, var(--cc-bg) 70%);
+  color: var(--cc-white);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.25;
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cloud-crew *,
+.cloud-crew *::before,
+.cloud-crew *::after {
+  box-sizing: border-box;
+}
+
+/* sparse star dots */
+.cloud-crew::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 22%, rgba(0, 229, 255, 0.35), transparent 60%),
+    radial-gradient(1.5px 1.5px at 78% 12%, rgba(0, 229, 255, 0.3), transparent 60%),
+    radial-gradient(1px 1px at 38% 64%, rgba(255, 255, 255, 0.35), transparent 60%),
+    radial-gradient(1.5px 1.5px at 88% 58%, rgba(0, 229, 255, 0.25), transparent 60%),
+    radial-gradient(1px 1px at 6% 80%, rgba(255, 255, 255, 0.3), transparent 60%),
+    radial-gradient(1px 1px at 55% 8%, rgba(255, 255, 255, 0.3), transparent 60%),
+    radial-gradient(1.5px 1.5px at 66% 88%, rgba(0, 229, 255, 0.2), transparent 60%);
+}
+
+.cloud-crew__defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.cloud-crew button { font: inherit; }
+
+/* ---------- HUD ---------- */
+.cloud-crew__hud {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 4px;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: var(--cc-muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.cloud-crew__hud [data-cc-score],
+.cloud-crew__hud [data-cc-rain],
+.cloud-crew__hud [data-cc-mars] {
+  color: var(--cc-cyan);
+  font-weight: 650;
+  text-shadow: 0 0 8px var(--cc-cyan-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.cloud-crew__icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.cloud-crew__mars {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 300px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cloud-crew__mars-bar {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 40px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(232, 244, 255, 0.12);
+  overflow: hidden;
+}
+.cloud-crew__mars-bar::after { /* little Mars at the finish */
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cc-mars);
+}
+.cloud-crew__mars-bar b {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--cc-cyan), #7ff4ff 70%, var(--cc-mars));
+  box-shadow: 0 0 8px var(--cc-cyan-dim);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.35s ease-out;
+}
+
+.cloud-crew__mars-text {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cloud-crew__rainbox {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cloud-crew.is-narrow .cloud-crew__hud { gap: 8px; padding: 8px 10px 2px; font-size: 13px; }
+.cloud-crew.is-narrow .cloud-crew__rain-label { display: none; }
+
+/* floating +50 / -30 near the score */
+.cloud-crew__pop {
+  position: absolute;
+  z-index: 6;
+  font-size: 15px;
+  font-weight: 750;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: cloud-crew-pop 1.1s ease-out forwards;
+}
+.cloud-crew__pop.is-good { color: var(--cc-green); text-shadow: 0 0 10px rgba(61, 255, 160, 0.6); }
+.cloud-crew__pop.is-bad { color: var(--cc-red); text-shadow: 0 0 10px rgba(255, 77, 106, 0.6); }
+
+/* Mars on the horizon: rises as you get closer to 1000 */
+.cloud-crew__horizon {
+  position: absolute;
+  z-index: 0;
+  left: -35%;
+  right: -35%;
+  bottom: 0;
+  height: 45%;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  background: radial-gradient(ellipse 50% 100% at 50% 100%, rgba(70, 18, 12, 0.34) 0%, rgba(110, 32, 18, 0.3) 80%, rgba(255, 128, 84, 0.3) 99%, rgba(255, 128, 84, 0) 100%);
+  transform: translateY(calc((1 - var(--cc-progress)) * 60%));
+  pointer-events: none; /* no transition: animating this big gradient stalls software rendering */
+}
+
+/* ---------- Sky with the 7 bots ---------- */
+.cloud-crew__sky {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-content: center;
+  justify-items: center;
+  gap: 6px 4px;
+  padding: 4px 8px;
+}
+
+.cloud-crew.is-narrow .cloud-crew__sky {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 4px 2px;
+}
+.cloud-crew.is-narrow .cloud-crew__bot { grid-column: span 2; }
+.cloud-crew.is-narrow .cloud-crew__bot:nth-child(5) { grid-column: 2 / span 2; }
+
+.cloud-crew__dock { flex: none; }
+
+.cloud-crew__bot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  text-align: center;
+}
+
+.cloud-crew__float {
+  position: relative;
+  width: var(--cc-cloud-w);
+  height: calc(var(--cc-cloud-w) * 0.6667);
+  margin-bottom: calc(var(--cc-cloud-w) * 0.14);
+  animation: cloud-crew-bob 3.4s ease-in-out infinite;
+  animation-delay: var(--cc-delay, 0s);
+}
+
+.cloud-crew__shape {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 4px 10px rgba(0, 229, 255, 0.16)) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+  transition: filter 0.3s;
+}
+
+.cloud-crew__eyes {
+  position: absolute;
+  left: 50%;
+  top: 64%;
+  display: flex;
+  gap: calc(var(--cc-cloud-w) * 0.1);
+  transform: translate(-50%, -50%);
+}
+
+.cloud-crew__eyes i {
+  display: block;
+  width: calc(var(--cc-cloud-w) * 0.15);
+  height: calc(var(--cc-cloud-w) * 0.075);
+  min-height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #7ff4ff 0%, var(--cc-cyan) 55%, #00b8d4 100%);
+  box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.25), 0 0 8px rgba(0, 229, 255, 0.8);
+  animation: cloud-crew-blink 5.2s infinite;
+  animation-delay: var(--cc-delay, 0s);
+  transition: background 0.3s, box-shadow 0.3s, transform 0.3s, height 0.3s;
+}
+
+/* notification dot on a cloud that has a waiting problem */
+.cloud-crew__ping {
+  position: absolute;
+  right: 4%;
+  top: 2%;
+  display: none;
+  place-items: center;
+  width: max(16px, calc(var(--cc-cloud-w) * 0.17));
+  height: max(16px, calc(var(--cc-cloud-w) * 0.17));
+  border-radius: 50%;
+  background: var(--cc-red);
+  color: #fff;
+  font-size: max(10px, calc(var(--cc-cloud-w) * 0.1));
+  font-weight: 800;
+  box-shadow: 0 0 0 2px #0a1228, 0 0 10px rgba(255, 77, 106, 0.6);
+  animation: cloud-crew-ping 1.4s ease-in-out infinite;
+}
+.cloud-crew__bot.has-ping .cloud-crew__ping { display: grid; }
+
+.cloud-crew__name {
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  color: var(--cc-white);
+  transition: color 0.2s;
+}
+.cloud-crew.is-narrow .cloud-crew__name { font-size: 12px; }
+.cloud-crew.is-roomy .cloud-crew__name { font-size: 15px; }
+
+.cloud-crew__bar {
+  position: relative;
+  width: calc(var(--cc-cloud-w) * 0.78);
+  max-width: 100%;
+  height: 5px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: rgba(232, 244, 255, 0.12);
+  overflow: hidden;
+}
+.cloud-crew.is-roomy .cloud-crew__bar { height: 6px; }
+
+.cloud-crew__bar b {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--cc-cyan);
+  box-shadow: 0 0 6px var(--cc-cyan-dim);
+  transform-origin: left center;
+  transition: background 0.3s;
+}
+
+.cloud-crew__bot[data-level="mid"] .cloud-crew__bar b { background: var(--cc-amber); }
+.cloud-crew__bot[data-level="low"] .cloud-crew__bar b { background: var(--cc-red); }
+.cloud-crew__bot[data-level="low"] .cloud-crew__name { color: #ffb3c0; }
+.cloud-crew__bot[data-level="low"]:not(.is-dead) .cloud-crew__eyes i { transform: scaleY(0.6); }
+
+/* active (opened on the phone) */
+.cloud-crew__bot.is-active .cloud-crew__name {
+  color: var(--cc-cyan);
+  text-shadow: 0 0 10px var(--cc-cyan-dim);
+}
+.cloud-crew__bot.is-active .cloud-crew__shape {
+  filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.65)) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+
+/* fed (correct doc landed) */
+.cloud-crew__bot.is-fed .cloud-crew__float { animation: cloud-crew-gulp 0.55s ease-out; }
+.cloud-crew__bot.is-fed .cloud-crew__shape { filter: drop-shadow(0 0 14px rgba(61, 255, 160, 0.85)); }
+
+/* dead: grey rain cloud */
+.cloud-crew__bot.is-dead .cloud-crew__float {
+  animation: cloud-crew-bob-sad 4.6s ease-in-out infinite;
+  animation-delay: var(--cc-delay, 0s);
+}
+.cloud-crew__bot.is-dead .cloud-crew__shape { filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5)); }
+.cloud-crew__bot.is-dead .cloud-crew__eyes i {
+  height: 3px;
+  min-height: 3px;
+  background: #3a4152;
+  box-shadow: none;
+  animation: none;
+  transform: rotate(-14deg);
+}
+.cloud-crew__bot.is-dead .cloud-crew__eyes i + i { transform: rotate(14deg); }
+.cloud-crew__bot.is-dead .cloud-crew__gloss { opacity: 0.2; }
+.cloud-crew__bot.is-dead .cloud-crew__name { color: #8a93a6; text-shadow: none; }
+.cloud-crew__bot.is-dead .cloud-crew__bar b { transform: scaleX(0) !important; }
+
+.cloud-crew__rain {
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  top: 84%;
+  height: calc(var(--cc-cloud-w) * 0.3);
+  display: none;
+  pointer-events: none;
+}
+.cloud-crew__bot.is-dead .cloud-crew__rain { display: block; }
+.cloud-crew__rain i {
+  position: absolute;
+  top: 0;
+  width: 3px;
+  height: calc(var(--cc-cloud-w) * 0.11);
+  min-height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(160, 205, 255, 0.15), #b4dcff);
+  box-shadow: 0 0 4px rgba(150, 200, 255, 0.5);
+  animation: cloud-crew-rain 0.75s linear infinite;
+}
+.cloud-crew__rain i:nth-child(1) { left: 4%; animation-delay: 0s; }
+.cloud-crew__rain i:nth-child(2) { left: 28%; animation-delay: -0.4s; }
+.cloud-crew__rain i:nth-child(3) { left: 52%; animation-delay: -0.15s; }
+.cloud-crew__rain i:nth-child(4) { left: 76%; animation-delay: -0.55s; }
+.cloud-crew__rain i:nth-child(5) { left: 96%; animation-delay: -0.28s; }
+
+/* ---------- Phone ---------- */
+.cloud-crew__phone {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: -16px; /* bottom bezel hidden: the phone is "held" */
+  width: min(360px, calc(100% - 24px));
+  transform: translate(-50%, 0);
+  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  touch-action: none;
+}
+.cloud-crew__phone.is-lowered {
+  transform: translate(-50%, var(--cc-travel));
+  cursor: pointer;
+}
+.cloud-crew__phone.is-dragging { transition: none; }
+.cloud-crew__phone.is-away { transform: translate(-50%, calc(100% + 40px)); }
+.cloud-crew.is-compact .cloud-crew__phone { width: min(560px, calc(100% - 16px)); }
+
+.cloud-crew__device {
+  position: relative;
+  padding: 8px 10px 26px;
+  border-radius: 34px 34px 28px 28px;
+  background: linear-gradient(160deg, #1b2440 0%, #0b1122 100%);
+  border: 2px solid rgba(0, 229, 255, 0.3);
+  box-shadow:
+    inset 0 0 0 6px #070b18,
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 -8px 40px rgba(0, 0, 0, 0.55),
+    0 0 28px rgba(0, 229, 255, 0.14);
+}
+.cloud-crew__device.is-buzz { animation: cloud-crew-buzz 0.45s ease-in-out; }
+.cloud-crew__device.is-bad {
+  animation: cloud-crew-shake 0.4s ease-in-out;
+  border-color: var(--cc-red);
+  box-shadow: inset 0 0 0 6px #070b18, 0 0 30px rgba(255, 77, 106, 0.45);
+}
+
+.cloud-crew__notch {
+  position: absolute;
+  top: 9px;
+  left: 50%;
+  width: 64px;
+  height: 12px;
+  border-radius: 999px;
+  background: #02040b;
+  transform: translateX(-50%);
+}
+
+.cloud-crew__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 14px 8px 4px;
+  cursor: grab;
+  font-size: 14px;
+}
+
+.cloud-crew__badge {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--cc-red);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgba(255, 77, 106, 0.55);
+}
+.cloud-crew__badge.is-zero {
+  background: rgba(232, 244, 255, 0.14);
+  color: var(--cc-muted);
+  box-shadow: none;
+}
+
+.cloud-crew__head-title {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cloud-crew__head-hint,
+.cloud-crew__head-lower {
+  margin-left: auto;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.cloud-crew__head-hint { color: var(--cc-cyan); animation: cloud-crew-nudge 1.6s ease-in-out infinite; }
+.cloud-crew__head-lower { color: var(--cc-muted); }
+.cloud-crew__phone.is-lowered .cloud-crew__head-lower,
+.cloud-crew__phone:not(.is-lowered) .cloud-crew__head-hint { display: none; }
+
+.cloud-crew__mouse-only { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .cloud-crew__mouse-only { display: inline; }
+  .cloud-crew__touch-only { display: none; }
+}
+
+.cloud-crew__chips { display: none; }
+
+.cloud-crew__screen {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 8px;
+  border-radius: 22px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(0, 229, 255, 0.1), rgba(5, 8, 20, 0.92) 70%);
+}
+
+.cloud-crew__note {
+  --cc-tag: #00e5ff;
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(232, 244, 255, 0.06);
+  border: 1px solid rgba(0, 229, 255, 0.28);
+}
+.cloud-crew__note-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cloud-crew__tag {
+  display: inline-block;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--cc-tag);
+  color: var(--cc-tag);
+  background: rgba(5, 8, 20, 0.6);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.cloud-crew__note-time {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--cc-muted);
+}
+.cloud-crew__note-text {
+  margin: 6px 0 8px;
+  min-height: 2.5em;
+  font-size: 16px;
+  font-weight: 550;
+  line-height: 1.25;
+  color: #fff;
+}
+.cloud-crew__note-text b { font-weight: 800; }
+
+.cloud-crew__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cloud-crew__choice {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 6px 12px;
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: 12px;
+  background: rgba(0, 229, 255, 0.05);
+  color: var(--cc-white);
+  font-size: 15px;
+  font-weight: 550;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.08s;
+}
+.cloud-crew__choice span { min-width: 0; overflow-wrap: anywhere; }
+.cloud-crew__choice kbd,
+.cloud-crew__send kbd {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 7px;
+  background: rgba(0, 229, 255, 0.14);
+  color: var(--cc-cyan);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+@media (hover: hover) {
+  .cloud-crew__choice:hover:not(:disabled) { background: rgba(0, 229, 255, 0.12); border-color: var(--cc-cyan); }
+}
+.cloud-crew__choice:disabled { cursor: default; }
+.cloud-crew__choice.is-selected {
+  background: rgba(0, 229, 255, 0.2);
+  border-color: var(--cc-cyan);
+  box-shadow: inset 0 0 0 1px var(--cc-cyan), 0 0 14px rgba(0, 229, 255, 0.25);
+}
+.cloud-crew__choice.is-selected kbd { background: var(--cc-cyan); color: #041018; }
+.cloud-crew__choice.is-right { background: rgba(61, 255, 160, 0.18); border-color: var(--cc-green); box-shadow: none; }
+.cloud-crew__choice.is-right kbd { background: rgba(61, 255, 160, 0.3); color: var(--cc-green); }
+.cloud-crew__choice.is-wrong { background: rgba(255, 77, 106, 0.2); border-color: var(--cc-red); box-shadow: none; }
+.cloud-crew__choice.is-wrong kbd { background: rgba(255, 77, 106, 0.3); color: #ffd0d8; }
+
+.cloud-crew__send {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 46px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--cc-cyan);
+  color: #041018;
+  font-size: 16px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.35);
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.08s;
+}
+.cloud-crew__send kbd { background: rgba(4, 16, 24, 0.18); color: #041018; }
+.cloud-crew__send:active:not(:disabled) { transform: scale(0.98); }
+.cloud-crew__send:disabled {
+  cursor: default;
+  background: rgba(0, 229, 255, 0.12);
+  color: rgba(232, 244, 255, 0.45);
+  box-shadow: none;
+}
+.cloud-crew__send:disabled kbd { background: rgba(232, 244, 255, 0.08); color: rgba(232, 244, 255, 0.45); }
+
+@media (hover: none) and (pointer: coarse) {
+  .cloud-crew__choice kbd,
+  .cloud-crew__send kbd { display: none; }
+}
+
+.cloud-crew__note.is-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  text-align: center;
+}
+.cloud-crew__empty-title { font-size: 18px; font-weight: 700; color: var(--cc-green); }
+.cloud-crew__empty-sub { font-size: 13px; color: var(--cc-muted); }
+
+.cloud-crew__queue {
+  min-height: 102px;
+  margin-top: 8px;
+}
+.cloud-crew__queue-label {
+  height: 14px;
+  margin: 0 4px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cc-muted);
+}
+.cloud-crew__row {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  margin: 0 0 4px;
+  padding: 4px 10px;
+  border: 1px solid rgba(232, 244, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(232, 244, 255, 0.04);
+  color: var(--cc-white);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.cloud-crew__row span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (hover: hover) {
+  .cloud-crew__row:hover:not(:disabled) { border-color: var(--cc-cyan-dim); background: rgba(0, 229, 255, 0.08); }
+}
+
+/* compact phone (short containers): answers in a row, queue as header chips */
+.cloud-crew.is-compact .cloud-crew__device { padding: 6px 8px 24px; border-radius: 26px 26px 22px 22px; }
+.cloud-crew.is-compact .cloud-crew__notch { top: 6px; height: 9px; width: 54px; }
+.cloud-crew.is-compact .cloud-crew__head { min-height: 38px; padding: 11px 6px 3px; gap: 6px; }
+.cloud-crew.is-compact .cloud-crew__phone:not(.is-lowered) .cloud-crew__chips {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+.cloud-crew.is-compact .cloud-crew__phone:not(.is-lowered) .cloud-crew__head-lower { margin-left: auto; }
+.cloud-crew__chip {
+  appearance: none;
+  flex: none;
+  min-height: 26px;
+  padding: 2px 8px;
+  border: 1px solid var(--cc-tag);
+  border-radius: 999px;
+  background: rgba(5, 8, 20, 0.6);
+  color: var(--cc-tag);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.cloud-crew.is-compact .cloud-crew__screen { padding: 6px; border-radius: 18px; }
+.cloud-crew.is-compact .cloud-crew__note { padding: 8px; border-radius: 14px; }
+.cloud-crew.is-compact .cloud-crew__note-top { display: none; }
+.cloud-crew.is-compact .cloud-crew__note-text { margin: 0 0 6px; min-height: 0; font-size: 14px; }
+.cloud-crew.is-compact .cloud-crew__choices { flex-direction: row; }
+.cloud-crew.is-compact .cloud-crew__choice {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 48px;
+  padding: 4px 8px;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+.cloud-crew.is-compact .cloud-crew__choice kbd { min-width: 18px; height: 18px; font-size: 10px; }
+.cloud-crew.is-compact .cloud-crew__send { min-height: 44px; margin-top: 6px; font-size: 15px; }
+.cloud-crew.is-compact .cloud-crew__queue { display: none; }
+
+.cloud-crew.is-compact.is-narrow .cloud-crew__choice kbd { display: none; }
+
+/* ---------- Flying document ---------- */
+.cloud-crew__fx {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.cloud-crew__doc {
+  position: absolute;
+  width: 132px;
+  padding: 8px 10px 9px;
+  border-radius: 10px;
+  background: rgba(61, 255, 160, 0.2);
+  border: 1px solid rgba(61, 255, 160, 0.75);
+  box-shadow: 0 0 18px rgba(61, 255, 160, 0.35);
+  backdrop-filter: blur(2px);
+  color: #e9fff4;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+  transform: translate(-50%, -50%);
+  will-change: transform, opacity;
+}
+.cloud-crew__doc-lines { display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
+.cloud-crew__doc-lines i { display: block; height: 3px; border-radius: 2px; background: rgba(61, 255, 160, 0.7); }
+.cloud-crew__doc-lines i + i { width: 60%; background: rgba(61, 255, 160, 0.45); }
+.cloud-crew__doc.is-bad {
+  background: rgba(255, 77, 106, 0.16);
+  border-color: rgba(255, 77, 106, 0.7);
+  box-shadow: 0 0 14px rgba(255, 77, 106, 0.3);
+  color: #ffe3e8;
+}
+.cloud-crew__doc.is-bad .cloud-crew__doc-lines i { background: rgba(255, 77, 106, 0.6); }
+
+/* ---------- Mars launch ---------- */
+.cloud-crew__launch {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 80% 15%, rgba(255, 106, 61, 0.12), transparent 55%);
+  animation: cloud-crew-fade-in 0.4s ease-out;
+}
+.cloud-crew__launch[hidden] { display: none !important; }
+.cloud-crew.is-launching .cloud-crew__sky { opacity: 0.22; transition: opacity 0.5s ease; }
+
+.cloud-crew__planet {
+  position: absolute;
+  top: 12%;
+  right: 14%;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #ffb08a 0%, #e5532f 45%, #8a2414 100%);
+  box-shadow: 0 0 26px rgba(255, 106, 61, 0.55), inset -6px -6px 12px rgba(0, 0, 0, 0.35);
+  animation: cloud-crew-fade-in 0.6s ease-out;
+}
+.cloud-crew__planet::before,
+.cloud-crew__planet::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(120, 30, 15, 0.55);
+}
+.cloud-crew__planet::before { width: 11px; height: 8px; left: 16px; top: 24px; }
+.cloud-crew__planet::after { width: 7px; height: 6px; left: 32px; top: 13px; }
+.cloud-crew__planet.is-hit { animation: cloud-crew-mars-hit 0.7s ease-out forwards; }
+
+.cloud-crew__rocket {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 24px;
+  height: 60px;
+  will-change: transform;
+}
+.cloud-crew__hull {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 24px;
+  height: 46px;
+  border-radius: 50% 50% 6px 6px / 70% 70% 6px 6px;
+  background: linear-gradient(90deg, #b9c7da 0%, #ffffff 45%, #d8e2ef 100%);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.35);
+}
+.cloud-crew__hull::before { /* window */
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--cc-cyan);
+  box-shadow: 0 0 6px var(--cc-cyan), inset 0 0 0 2px #0b1122;
+  transform: translateX(-50%);
+}
+.cloud-crew__fins {
+  position: absolute;
+  left: -8px;
+  top: 28px;
+  width: 40px;
+  height: 20px;
+  background: linear-gradient(180deg, #ff7a5c, #c2303a);
+  clip-path: polygon(0 100%, 28% 10%, 72% 10%, 100% 100%, 64% 80%, 36% 80%);
+}
+.cloud-crew__flame {
+  position: absolute;
+  left: 50%;
+  top: 42px;
+  width: 14px;
+  height: 30px;
+  margin-left: -7px;
+  border-radius: 50% 50% 50% 50% / 30% 30% 70% 70%;
+  background: radial-gradient(ellipse at 50% 10%, #ffffff 0%, #ffe066 25%, #ff8a00 55%, rgba(255, 60, 0, 0) 78%);
+  transform-origin: 50% 0;
+  animation: cloud-crew-flame 0.09s ease-in-out infinite alternate;
+}
+.cloud-crew__trail {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 230, 150, 0.95) 0%, rgba(255, 130, 40, 0.6) 45%, rgba(255, 80, 0, 0) 72%);
+  transform: translate(-50%, -50%);
+  animation: cloud-crew-trail 0.75s ease-out forwards;
+}
+
+/* ---------- Overlay ---------- */
+.cloud-crew__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  background: rgba(5, 8, 20, 0.8);
+  backdrop-filter: blur(4px);
+}
+.cloud-crew__overlay[hidden] { display: none !important; }
+.cloud-crew__overlay[data-mode="won"] { background: rgba(5, 8, 20, 0.72); }
+
+.cloud-crew__title {
+  margin: 0;
+  font-size: clamp(30px, 7vw, 46px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--cc-white);
+}
+.cloud-crew__title em {
+  font-style: normal;
+  color: var(--cc-cyan);
+  text-shadow: 0 0 18px var(--cc-cyan-dim);
+}
+.cloud-crew__title em.cloud-crew__red { color: var(--cc-mars); text-shadow: 0 0 18px rgba(255, 106, 61, 0.45); }
+.cloud-crew__hint { margin: 0; max-width: 30em; font-size: 16px; color: var(--cc-white); }
+.cloud-crew__sub { margin: 0 0 4px; max-width: 30em; font-size: 14px; color: var(--cc-muted); }
+.cloud-crew__scoreline { margin: 0; font-size: 18px; font-weight: 650; color: var(--cc-cyan); }
+.cloud-crew__scoreline:empty { display: none; }
+
+.cloud-crew__btn {
+  margin-top: 8px;
+  min-height: 48px;
+  appearance: none;
+  border: 1px solid var(--cc-cyan);
+  background: transparent;
+  color: var(--cc-cyan);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 12px 36px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.cloud-crew__btn:hover,
+.cloud-crew__btn:focus-visible {
+  background: var(--cc-cyan);
+  color: var(--cc-bg);
+  outline: none;
+  box-shadow: 0 0 24px var(--cc-cyan-dim);
+}
+.cloud-crew__btn:active { transform: scale(0.98); }
+
+/* ---------- Animations ---------- */
+@keyframes cloud-crew-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes cloud-crew-bob-sad { 0%, 100% { transform: translateY(3px); } 50% { transform: translateY(5px); } }
+@keyframes cloud-crew-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.15); } }
+@keyframes cloud-crew-gulp { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes cloud-crew-rain {
+  0% { transform: translateY(0); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(calc(var(--cc-cloud-w) * 0.2)); opacity: 0; }
+}
+@keyframes cloud-crew-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+@keyframes cloud-crew-buzz {
+  0%, 100% { transform: translateY(0); }
+  20% { transform: translateY(-7px) rotate(-1deg); }
+  40% { transform: translateY(0) rotate(1deg); }
+  60% { transform: translateY(-5px) rotate(-1deg); }
+  80% { transform: translateY(0); }
+}
+@keyframes cloud-crew-nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+@keyframes cloud-crew-ping { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+@keyframes cloud-crew-pop {
+  0% { transform: translateY(4px) scale(0.8); opacity: 0; }
+  15% { transform: translateY(0) scale(1.1); opacity: 1; }
+  100% { transform: translateY(-26px) scale(1); opacity: 0; }
+}
+@keyframes cloud-crew-flame { from { transform: scaleY(0.8) scaleX(0.9); } to { transform: scaleY(1.25) scaleX(1.05); } }
+@keyframes cloud-crew-trail {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to { opacity: 0; transform: translate(-50%, -50%) scale(2.4); }
+}
+@keyframes cloud-crew-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cloud-crew-mars-hit {
+  0% { transform: scale(1); box-shadow: 0 0 26px rgba(255, 106, 61, 0.55); }
+  40% { transform: scale(1.35); box-shadow: 0 0 60px rgba(255, 170, 90, 0.95); }
+  100% { transform: scale(1.15); box-shadow: 0 0 40px rgba(255, 106, 61, 0.8); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cloud-crew__float,
+  .cloud-crew__eyes i,
+  .cloud-crew__head-hint,
+  .cloud-crew__ping { animation: none !important; }
+}
