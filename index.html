@@ -4,47 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="robots" content="noindex, nofollow" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>SpaceXAI — Your bots. One sphere.</title>
+  <title>Cloud Crew · Play as Elon</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./shell.css" />
-  <link rel="stylesheet" href="./cloud-crew/cloud-crew.css?v=3" />
+  <link rel="stylesheet" href="./shell.css?v=4" />
+  <link rel="stylesheet" href="./cloud-crew/cloud-crew.css?v=4" />
 </head>
 <body>
-  <header class="hero" id="top">
-    <p class="eyebrow">SpaceXAI</p>
-    <h1>Your bots. One sphere.</h1>
-    <p class="sub">SpaceXAI puts your assistants in one place — talk to the sphere, then jump into a quick bot game.</p>
-    <div class="ctas">
-      <a class="btn primary" href="#sphere">Meet your bot</a>
-      <a class="btn ghost" href="#play">Play as Elon</a>
-    </div>
-  </header>
-
-  <section class="stage" id="sphere" aria-label="Sphere companion">
-    <div id="sphere-root" class="sphere-frame">
-      <iframe
-        title="SpaceXAI Sphere"
-        src="./sphere/index.html"
-        allow="microphone"
-      ></iframe>
-    </div>
-    <p class="stage-hint">Click the sphere to wake · scroll your bots</p>
-  </section>
-
-  <section class="play-strip" id="play" aria-label="Cloud Crew game">
+  <main class="play-strip" id="play" aria-label="Cloud Crew game">
     <div class="play-copy">
-      <h2>Cloud Crew</h2>
-      <p>Play as Elon. Keep your company bots fed with the right answers.</p>
+      <p class="eyebrow">SpaceXAI</p>
+      <h1>Cloud Crew</h1>
+      <p>Play as Elon. Keep your company bots fed with the right answers. Reach 1000 to unlock Mars.</p>
     </div>
     <div id="game-root"></div>
-  </section>
+  </main>
 
   <footer class="foot">
     <span>Demo build · not a public product page</span>
-    <a href="#top">Back to top</a>
   </footer>
 
-  <script src="./cloud-crew/cloud-crew.js?v=3"></script>
+  <script src="./cloud-crew/cloud-crew.js?v=4"></script>
   <script>
     window.__cloudCrew = initCloudCrew(document.getElementById('game-root'));
   </script>

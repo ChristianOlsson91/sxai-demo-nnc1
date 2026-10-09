@@ -97,9 +97,14 @@ body {
 }
 
 .play-strip {
-  max-width: 720px;
+  max-width: 760px;
   margin: 0 auto;
-  padding: 2.5rem 1rem 3rem;
+  padding: 1.5rem 1rem 2rem;
+}
+.play-copy h1 {
+  margin: 0 0 0.35rem;
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  letter-spacing: -0.02em;
 }
 .play-copy {
   text-align: center;
@@ -115,8 +120,8 @@ body {
 }
 #game-root {
   width: 100%;
-  height: min(70dvh, 560px);
-  min-height: 420px;
+  height: min(78dvh, 680px);
+  min-height: 460px;
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid var(--line);
