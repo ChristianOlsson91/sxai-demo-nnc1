@@ -66,7 +66,7 @@
       ['Dish motors are stuck', 'Clear debris and restart', 'Push it with a broom', 'Sing to the motors'],
       ['Slow speeds at peak hours', 'Add network capacity', 'Only browse at 3 a.m.', 'Type faster']
     ] },
-    { id: 'xai', name: 'xAI', color: '#e6e9f0', problems: [
+    { id: 'xai', name: 'SpaceXAI', color: '#e6e9f0', problems: [
       ['Grok replies too slowly', 'Add more GPUs', 'Ask it to hurry up', 'Type in all caps'],
       ['Model makes up facts', 'Ground it with sources', 'Ask it to pinky promise', 'Add more emojis'],
       ['Training run keeps crashing', 'Resume from checkpoint', 'Unplug it and hope', 'Train it on memes only'],
