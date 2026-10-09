@@ -1,6 +1,5 @@
 /**
- * Cloud Crew v3 — SpaceXAI demo mini-game (fan demo, local only)
- * v3: a ~3 s intro on the first Play (cartoon Elon, camera zooms into his phone).
+ * Cloud Crew v2 — SpaceXAI demo mini-game (fan demo, local only)
  * You're Elon Musk with a phone full of company problems. Raise the phone,
  * pick the fix, hit Send. Reach 1000 points to unlock Mars.
  *
@@ -33,11 +32,6 @@
   var NEXT_BAD_MS = 750;      // ... after a wrong send
   var LAUNCH_MS = 2800;       // rocket flight to Mars
   var BEZEL_HIDDEN = 16;      // px of phone bottom hidden below the edge
-  var INTRO_HOLD = 1000;      // intro: Elon on screen before the zoom (ms)
-  var INTRO_ZOOM = 1400;      // ... camera zoom into his phone
-  var INTRO_FADE = 380;       // ... crossfade into the real phone
-  var INTRO_SKIP_FADE = 200;  // ... crossfade when skipped
-  var INTRO_RM_HOLD = 900;    // reduced motion: hold, then just fade
 
   // ---- Content (fan tone; made-up problems, not real company facts) -------
   // Each problem: [problem, correct fix, wrong 1, wrong 2]
@@ -115,69 +109,6 @@
   ];
 
   var instanceCount = 0;
-
-  // Intro figure: friendly cartoon Elon (dark tee) holding a glowing phone.
-  // viewBox units; the phone group is the zoom target.
-  function elonSvg(id) {
-    var skin = '#f1c4a0';
-    var shirt = '#161c2e';
-    var hair = '#3a2a22';
-    return (
-      '<svg class="cloud-crew__intro-elon" viewBox="0 0 200 360" aria-hidden="true">' +
-      '<defs>' +
-      '<radialGradient id="' + id + '-glow"><stop offset="0" stop-color="#7ff4ff" stop-opacity="0.85"/>' +
-      '<stop offset="0.45" stop-color="#00e5ff" stop-opacity="0.35"/><stop offset="1" stop-color="#00e5ff" stop-opacity="0"/></radialGradient>' +
-      '<linearGradient id="' + id + '-screen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#103a5c"/>' +
-      '<stop offset="1" stop-color="#071226"/></linearGradient>' +
-      '</defs>' +
-      '<ellipse cx="100" cy="348" rx="58" ry="9" fill="rgba(0,0,0,0.35)"/>' +
-      // legs + shoes
-      '<rect x="78" y="256" width="20" height="86" rx="9" fill="#262d42"/>' +
-      '<rect x="102" y="256" width="20" height="86" rx="9" fill="#262d42"/>' +
-      '<ellipse cx="86" cy="343" rx="15" ry="7" fill="#0c101d"/>' +
-      '<ellipse cx="114" cy="343" rx="15" ry="7" fill="#0c101d"/>' +
-      // hanging arm
-      '<path d="M55 200 C52 222 52 238 54 248" stroke="' + skin + '" stroke-width="14" stroke-linecap="round" fill="none"/>' +
-      '<circle cx="54" cy="252" r="9" fill="' + skin + '"/>' +
-      '<path d="M63 168 C57 182 55 194 55 204" stroke="' + shirt + '" stroke-width="22" stroke-linecap="round" fill="none"/>' +
-      // neck + torso
-      '<rect x="91" y="126" width="18" height="26" rx="6" fill="#e3b08c"/>' +
-      '<path d="M60 170 Q60 148 82 146 L118 146 Q140 148 140 170 L144 262 Q100 272 56 262 Z" fill="' + shirt + '"/>' +
-      '<path d="M88 147 Q100 160 112 147" stroke="#0a0e1a" stroke-width="3" fill="none" stroke-linecap="round"/>' +
-      '<path d="M70 176 Q72 222 68 256" stroke="rgba(255,255,255,0.05)" stroke-width="6" fill="none" stroke-linecap="round"/>' +
-      // head
-      '<circle cx="63" cy="100" r="8" fill="#e8b892"/>' +
-      '<circle cx="137" cy="100" r="8" fill="#e8b892"/>' +
-      '<ellipse cx="100" cy="96" rx="37" ry="40" fill="' + skin + '"/>' +
-      '<path d="M64 94 Q60 56 98 54 Q137 53 138 90 Q132 73 117 70 Q100 66 85 72 Q71 79 69 98 Z" fill="' + hair + '"/>' +
-      '<path d="M80 86 Q87 82 94 85" stroke="' + hair + '" stroke-width="3" fill="none" stroke-linecap="round"/>' +
-      '<path d="M106 85 Q113 82 120 86" stroke="' + hair + '" stroke-width="3" fill="none" stroke-linecap="round"/>' +
-      '<ellipse cx="88" cy="99" rx="4" ry="4.6" fill="#1d2233"/>' +
-      '<ellipse cx="113" cy="99" rx="4" ry="4.6" fill="#1d2233"/>' +
-      '<circle cx="89.4" cy="97.6" r="1.3" fill="#fff"/>' +
-      '<circle cx="114.4" cy="97.6" r="1.3" fill="#fff"/>' +
-      '<path d="M100 102 Q97 109 101 110" stroke="#d29a78" stroke-width="2" fill="none" stroke-linecap="round"/>' +
-      '<circle cx="78" cy="111" r="6" fill="rgba(255,120,120,0.22)"/>' +
-      '<circle cx="122" cy="111" r="6" fill="rgba(255,120,120,0.22)"/>' +
-      '<path d="M88 116 Q100 126 112 116" stroke="#8a4b3a" stroke-width="3" fill="none" stroke-linecap="round"/>' +
-      // phone arm: glow, sleeve, forearm, phone, hand
-      '<circle class="cloud-crew__intro-glow" cx="122" cy="188" r="46" fill="url(#' + id + '-glow)"/>' +
-      '<path d="M138 166 C146 178 150 192 150 204" stroke="' + shirt + '" stroke-width="22" stroke-linecap="round" fill="none"/>' +
-      '<path d="M150 206 Q148 220 130 214" stroke="' + skin + '" stroke-width="14" stroke-linecap="round" fill="none"/>' +
-      '<g class="cloud-crew__intro-phone" data-cc-introphone>' +
-      '<rect x="107" y="164" width="30" height="48" rx="6" fill="#1b2440" stroke="#00e5ff" stroke-width="1.5"/>' +
-      '<rect x="110" y="169" width="24" height="38" rx="3.5" fill="url(#' + id + '-screen)"/>' +
-      '<rect x="112" y="174" width="20" height="9" rx="2.2" fill="rgba(232,244,255,0.9)"/>' +
-      '<circle cx="131.5" cy="174.5" r="2.8" fill="#ff4d6a"/>' +
-      '<rect x="112" y="187" width="20" height="3" rx="1.5" fill="#00e5ff" opacity="0.8"/>' +
-      '<rect x="112" y="193" width="20" height="3" rx="1.5" fill="#00e5ff" opacity="0.5"/>' +
-      '<rect x="112" y="199" width="20" height="4" rx="2" fill="#00e5ff"/>' +
-      '</g>' +
-      '<ellipse cx="108" cy="196" rx="4" ry="6.5" fill="' + skin + '"/>' +
-      '<circle cx="124" cy="213" r="8.5" fill="' + skin + '"/>' +
-      '</svg>'
-    );
-  }
 
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function rand(a, b) { return a + Math.random() * (b - a); }
@@ -294,15 +225,6 @@
       '<p class="cloud-crew__sub" data-cc-sub></p>' +
       '<p class="cloud-crew__scoreline" data-cc-final></p>' +
       '<button type="button" class="cloud-crew__btn" data-cc-play>Play</button>' +
-      '</div>' +
-      '<div class="cloud-crew__intro" data-cc-intro hidden>' +
-      '<div class="cloud-crew__intro-stars" aria-hidden="true"></div>' +
-      '<div class="cloud-crew__intro-stage" data-cc-introstage>' +
-      '<div class="cloud-crew__intro-ground" aria-hidden="true"></div>' +
-      elonSvg(uid + '-elon') +
-      '</div>' +
-      '<div class="cloud-crew__intro-skip"><span class="cloud-crew__touch-only">Tap to skip</span>' +
-      '<span class="cloud-crew__mouse-only">Click or press Esc to skip</span></div>' +
       '</div>';
 
     function q(sel) { return rootEl.querySelector(sel); }
@@ -332,9 +254,6 @@
     var subEl = q('[data-cc-sub]');
     var finalEl = q('[data-cc-final]');
     var playBtn = q('[data-cc-play]');
-    var introEl = q('[data-cc-intro]');
-    var introStage = q('[data-cc-introstage]');
-    var introPhone = q('[data-cc-introphone]');
 
     var bots = BOTS.map(function (def, idx) {
       var el = rootEl.querySelector('[data-cc-bot="' + idx + '"]');
@@ -354,7 +273,7 @@
     });
 
     // ---- State ------------------------------------------------------------
-    var state = 'ready'; // ready | intro | playing | launch | won | over
+    var state = 'ready'; // ready | playing | launch | won | over
     var score = 0;
     var rain = 0;
     var elapsed = 0;     // ms of play
@@ -374,8 +293,6 @@
     var timers = [];
     var anims = [];
     var ro = null;
-    var introSeen = false; // the intro plays on the first Play only
-    var introAnim = null;
 
     function later(fn, ms) {
       var id = setTimeout(function () {
@@ -908,9 +825,8 @@
       raf = requestAnimationFrame(loop);
     }
 
-    function startGame(fromIntro) {
+    function startGame() {
       if (destroyed) return;
-      if (fromIntro !== true) hideIntro();
       clearTimers();
       clearFx();
       score = 0;
@@ -931,119 +847,11 @@
       arriveIn = ARRIVE_FIRST[0];
       arriveQueue = [ARRIVE_FIRST[1] - ARRIVE_FIRST[0]];
       setRaised(false);
-      if (fromIntro === true) {
-        // The intro zoomed into Elon's phone: pick up with it raised and the first problem open.
-        phone.classList.add('is-dragging'); // no slide transition
-        setRaised(true);
-        void phone.offsetWidth;
-        phone.classList.remove('is-dragging');
-        addNote();
-        arriveIn = ARRIVE_FIRST[1] - ARRIVE_FIRST[0];
-        arriveQueue = [];
-      }
       updateHud();
       overlay.hidden = true;
       rootEl.classList.add('is-playing');
       lastTs = 0;
       if (!raf) raf = requestAnimationFrame(loop);
-    }
-
-    // ---- Intro (first Play only) --------------------------------------------
-    function reducedMotion() {
-      return !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    }
-
-    function play() {
-      if (destroyed) return;
-      if (state === 'intro') { endIntro(false); return; }
-      if (introSeen) { startGame(); return; }
-      startIntro();
-    }
-
-    function startIntro() {
-      introSeen = true;
-      clearTimers();
-      clearFx();
-      state = 'intro'; // the loop ignores this state: no timers, drain or notifications
-      inbox = [];
-      openNote = null;
-      locked = false;
-      launch = null;
-      drag = null;
-      launchEl.hidden = true;
-      rootEl.classList.remove('is-launching');
-      phone.classList.remove('is-away', 'is-dragging');
-      resetBots();
-      setRaised(false);
-      overlay.hidden = true;
-      if (introAnim) { introAnim.cancel(); introAnim = null; }
-      introStage.style.transform = '';
-      introEl.style.pointerEvents = '';
-      introEl.style.transitionDuration = '';
-      introEl.classList.remove('is-out');
-      introEl.hidden = false;
-      rootEl.classList.add('is-intro');
-      later(zoomIntro, reducedMotion() ? INTRO_RM_HOLD : INTRO_HOLD);
-    }
-
-    // Camera move: map the SVG phone onto where the real raised phone sits.
-    function zoomIntro() {
-      if (state !== 'intro') return;
-      if (reducedMotion() || !introStage.animate) { endIntro(false); return; }
-      var root = rootEl.getBoundingClientRect();
-      var pr = introPhone.getBoundingClientRect();
-      var dr = device.getBoundingClientRect();
-      var lift = phone.classList.contains('is-lowered') ? travel : 0;
-      var P = { x: pr.left - root.left + pr.width / 2, y: pr.top - root.top + pr.height / 2 };
-      var T = { x: dr.left - root.left + dr.width / 2, y: dr.top - root.top - lift + dr.height / 2 };
-      var s = Math.sqrt((dr.width * dr.height) / Math.max(1, pr.width * pr.height));
-      function frame(u, sc, deg) {
-        // keep P on the straight line to T: translate = M - sc * R(deg) * P
-        var mx = P.x + (T.x - P.x) * u;
-        var my = P.y + (T.y - P.y) * u;
-        var r = deg * Math.PI / 180;
-        var rx = P.x * Math.cos(r) - P.y * Math.sin(r);
-        var ry = P.x * Math.sin(r) + P.y * Math.cos(r);
-        return { transform: 'translate(' + (mx - sc * rx).toFixed(1) + 'px,' + (my - sc * ry).toFixed(1) + 'px) scale(' +
-          sc.toFixed(3) + ') rotate(' + deg + 'deg)' };
-      }
-      introAnim = introStage.animate([
-        frame(0, 1, 0),
-        frame(0.35, 1 + (s - 1) * 0.2, -3),
-        frame(1, s, 0)
-      ], { duration: INTRO_ZOOM, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' });
-      introAnim.onfinish = function () {
-        if (!destroyed && state === 'intro') endIntro(false);
-      };
-    }
-
-    function endIntro(skipped, byPointer) {
-      if (state !== 'intro') return;
-      if (introAnim) introAnim.pause(); // freeze the camera where it is
-      startGame(true);
-      var fade = skipped ? INTRO_SKIP_FADE : INTRO_FADE;
-      // a skip tap keeps blocking until the fade ends, so it can't land on the phone
-      introEl.style.pointerEvents = byPointer ? 'auto' : 'none';
-      introEl.style.transitionDuration = fade + 'ms';
-      void introEl.offsetWidth;
-      introEl.classList.add('is-out');
-      later(hideIntro, fade + 40);
-    }
-
-    function hideIntro() {
-      if (introAnim) { introAnim.cancel(); introAnim = null; }
-      introEl.hidden = true;
-      introEl.classList.remove('is-out');
-      introEl.style.pointerEvents = '';
-      introEl.style.transitionDuration = '';
-      introStage.style.transform = '';
-      rootEl.classList.remove('is-intro');
-    }
-
-    function onIntroDown(e) {
-      if (state !== 'intro') return;
-      e.preventDefault();
-      endIntro(true, true);
     }
 
     function gameOver() {
@@ -1069,13 +877,6 @@
         !rootEl.contains(t) && /^(A|BUTTON)$/.test(t.tagName);
       if (outsideControl) return;
       var code = e.code;
-      if (state === 'intro') {
-        if (code === 'Space' || code === 'Enter' || code === 'NumpadEnter' || code === 'Escape') {
-          e.preventDefault();
-          if (!e.repeat) endIntro(true);
-        }
-        return;
-      }
       if (state === 'playing') {
         if (code === 'Space' || code === 'KeyP') {
           e.preventDefault();
@@ -1099,7 +900,7 @@
         if (state === 'launch') { e.preventDefault(); return; }
         if (overlay.hidden || e.target === playBtn) return; // the focused button clicks itself
         e.preventDefault();
-        play();
+        startGame();
       }
     }
 
@@ -1181,7 +982,7 @@
 
     function onPlayClick(e) {
       e.stopPropagation();
-      play();
+      startGame();
     }
 
     phone.addEventListener('pointerdown', onPhoneDown);
@@ -1190,7 +991,6 @@
     phone.addEventListener('pointercancel', onPhoneUp);
     phone.addEventListener('click', onScreenClick);
     playBtn.addEventListener('click', onPlayClick);
-    introEl.addEventListener('pointerdown', onIntroDown);
     window.addEventListener('keydown', onKey);
     window.addEventListener('resize', layout);
     if (typeof ResizeObserver !== 'undefined') {
@@ -1206,15 +1006,13 @@
     raf = requestAnimationFrame(loop);
 
     return {
-      start: play,
+      start: startGame,
       destroy: function () {
         destroyed = true;
         if (raf) cancelAnimationFrame(raf);
         raf = 0;
         clearTimers();
         clearFx();
-        if (introAnim) { introAnim.cancel(); introAnim = null; }
-        introEl.removeEventListener('pointerdown', onIntroDown);
         phone.removeEventListener('pointerdown', onPhoneDown);
         phone.removeEventListener('pointermove', onPhoneMove);
         phone.removeEventListener('pointerup', onPhoneUp);
@@ -1225,7 +1023,7 @@
         window.removeEventListener('resize', layout);
         if (ro) ro.disconnect();
         rootEl.innerHTML = '';
-        rootEl.classList.remove('cloud-crew', 'is-narrow', 'is-roomy', 'is-compact', 'is-playing', 'is-launching', 'is-intro');
+        rootEl.classList.remove('cloud-crew', 'is-narrow', 'is-roomy', 'is-compact', 'is-playing', 'is-launching');
         rootEl.style.removeProperty('--cc-cloud-w');
         rootEl.style.removeProperty('--cc-travel');
         rootEl.style.removeProperty('--cc-progress');

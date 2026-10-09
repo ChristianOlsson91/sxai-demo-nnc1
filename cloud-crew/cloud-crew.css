@@ -1,4 +1,4 @@
-/* Cloud Crew v3 — SpaceXAI demo mini-game. Everything scoped under .cloud-crew */
+/* Cloud Crew v2 — SpaceXAI demo mini-game. Everything scoped under .cloud-crew */
 .cloud-crew {
   --cc-bg: #050814;
   --cc-cyan: #00e5ff;
@@ -899,99 +899,6 @@
 }
 .cloud-crew__btn:active { transform: scale(0.98); }
 
-/* ---------- Intro (first Play): Elon, then the camera zooms into his phone ---------- */
-.cloud-crew__intro {
-  position: absolute;
-  inset: 0;
-  z-index: 8;
-  overflow: hidden;
-  background: radial-gradient(ellipse at 50% 18%, #13254f 0%, #0a1430 38%, var(--cc-bg) 75%);
-  cursor: pointer;
-  touch-action: none;
-  opacity: 1;
-  transition: opacity 0.38s ease;
-  animation: cloud-crew-fade-in 0.25s ease-out;
-}
-.cloud-crew__intro[hidden] { display: none !important; }
-.cloud-crew__intro.is-out { opacity: 0; }
-
-.cloud-crew__intro-stars {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    radial-gradient(2px 2px at 10% 14%, rgba(255, 255, 255, 0.8), transparent 60%),
-    radial-gradient(1.5px 1.5px at 24% 38%, rgba(0, 229, 255, 0.7), transparent 60%),
-    radial-gradient(1.5px 1.5px at 36% 9%, rgba(255, 255, 255, 0.6), transparent 60%),
-    radial-gradient(2px 2px at 62% 22%, rgba(255, 255, 255, 0.75), transparent 60%),
-    radial-gradient(1.5px 1.5px at 74% 44%, rgba(0, 229, 255, 0.6), transparent 60%),
-    radial-gradient(1.5px 1.5px at 86% 12%, rgba(255, 255, 255, 0.7), transparent 60%),
-    radial-gradient(1px 1px at 92% 34%, rgba(255, 255, 255, 0.6), transparent 60%),
-    radial-gradient(1px 1px at 6% 52%, rgba(255, 255, 255, 0.5), transparent 60%),
-    radial-gradient(1px 1px at 48% 30%, rgba(255, 255, 255, 0.5), transparent 60%),
-    radial-gradient(1.5px 1.5px at 18% 66%, rgba(0, 229, 255, 0.45), transparent 60%),
-    radial-gradient(1px 1px at 82% 62%, rgba(255, 255, 255, 0.45), transparent 60%);
-}
-
-.cloud-crew__intro-stage {
-  position: absolute;
-  inset: 0;
-  transform-origin: 0 0;
-}
-
-.cloud-crew__intro-ground { /* Mars horizon */
-  position: absolute;
-  left: -40%;
-  right: -40%;
-  bottom: -4%;
-  height: 20%;
-  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-  background: radial-gradient(ellipse 50% 100% at 50% 100%, #4a160e 0%, #7a2816 62%, #c24e30 94%, #ff8a5c 99%, rgba(255, 138, 92, 0) 100%);
-  box-shadow: 0 -10px 40px rgba(255, 106, 61, 0.18);
-}
-
-.cloud-crew__intro-elon {
-  position: absolute;
-  left: 50%;
-  bottom: 7%;
-  height: min(72%, 540px);
-  width: auto;
-  aspect-ratio: 200 / 360;
-  overflow: visible;
-  transform: translateX(-50%);
-}
-
-.cloud-crew__intro-phone {
-  transform-box: fill-box;
-  transform-origin: 50% 50%;
-  animation: cloud-crew-intro-buzz 0.5s ease-in-out 0.45s 1;
-}
-.cloud-crew__intro-glow { animation: cloud-crew-intro-glow 0.9s ease-in-out infinite alternate; }
-
-.cloud-crew__intro-skip {
-  position: absolute;
-  right: 14px;
-  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-  padding: 6px 12px;
-  border: 1px solid rgba(0, 229, 255, 0.3);
-  border-radius: 999px;
-  background: rgba(5, 8, 20, 0.55);
-  color: var(--cc-muted);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  pointer-events: none;
-  animation: cloud-crew-fade-in 0.6s ease-out;
-}
-
-@keyframes cloud-crew-intro-buzz {
-  0%, 100% { transform: rotate(0deg); }
-  20% { transform: rotate(-6deg); }
-  40% { transform: rotate(5deg); }
-  60% { transform: rotate(-4deg); }
-  80% { transform: rotate(2deg); }
-}
-@keyframes cloud-crew-intro-glow { from { opacity: 0.55; } to { opacity: 1; } }
-
 /* ---------- Animations ---------- */
 @keyframes cloud-crew-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 @keyframes cloud-crew-bob-sad { 0%, 100% { transform: translateY(3px); } 50% { transform: translateY(5px); } }
@@ -1039,7 +946,5 @@
   .cloud-crew__float,
   .cloud-crew__eyes i,
   .cloud-crew__head-hint,
-  .cloud-crew__ping,
-  .cloud-crew__intro-phone,
-  .cloud-crew__intro-glow { animation: none !important; }
+  .cloud-crew__ping { animation: none !important; }
 }
